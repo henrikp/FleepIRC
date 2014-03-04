@@ -7,12 +7,13 @@ import requests
 import sys
 import socket
 import string
+import re
 
 HOST="some.irc.server"
-PORT=6667
 NICK="fleep"
 CHANNEL="#fleep"
 PASSWORD="password"
+PORT=6667
 
 REALNAME="fleep"
 # Set to true if your bot doesn't use a password
@@ -31,6 +32,25 @@ irc.send("NICK %s\r\n" % NICK)
 print "Sending user information"
 irc.send("USER bot 0 * :%s\r\n" % (REALNAME))
 
+_lowclean_rc = re.compile('[\x00-\x08\x0b-\x0c\x0e-\x1f]')
+def clean_low_bytes(s):
+    r"""Clean raw bytes not allowed in XML.
+
+    >>> clean_low_bytes('\x00\x01\x08\x09\x0a\x0b\x0c\x0d\x0e ')
+    '\t\n\r '
+    >>> clean_low_bytes(u'\x00\x01\x08\x09\x0a\x0b\x0c\x0d\x0e ')
+    u'\t\n\r '
+    """
+    res = _lowclean_rc.sub('', s)
+    if res != s:
+	print ("clean_low_bytes modified: " + str(s))
+    return res
+
+def debug(time, who, msg):
+    print "Time: " + str(time)
+    print "Who: " + str(who)
+    print "Msg: " + str(msg) 
+
 def whoSent(line):
     return line[0][1: line[0].find("!")]
 
@@ -44,29 +64,35 @@ while 1:
         line = string.rstrip(line)
         line = string.split(line)
 
-
 	#print (line)
 
-	if (line[1] == "PRIVMSG" and line[2] == CHANNEL):
+	if line[1] == "PRIVMSG" and line[2] == CHANNEL:
 	    now = datetime.now()
 	    time = "%02d:%02d" % (now.hour, now.minute)
+	    seconds = "%02d" % now.second
 	    who = whoSent(line)
-	    del line[:3]
-	    msg = ' '.join(line)
-	    fleep = time + " <" + who + "> " + msg[1:]
+	    if line[3] == ":\x01ACTION":
+		del line[:4]
+		msg = ' '.join(line)
+		# skip the final \x01 byte
+		fleep = time + " * " + who + " " + msg[:len(msg)-1]
+	    else:
+		del line[:3]
+		msg = ' '.join(line)
+		# skip the initial colon
+		fleep = time + " <" + who + "> " + msg[1:]
+	    #debug(time, who, msg)
 	    try:
-		r = requests.post(hook_url, data = {'message': fleep})
+		r = requests.post(hook_url, data = {'message': clean_low_bytes(fleep)})
 	    except Exception:
 		sys.exc_clear()
-	    #print msg[1:]
-	    print "Status: " + str(r.status_code) + " " + str(time) + ":" + str(now.second)
+	    print "Status: " + str(r.status_code) + " " + str(time) + ":" + seconds
 
-
-	if (registered == False and line[1] == "NOTICE" and whoSent(line) == NICKSERVER):
+	if registered == False and line[1] == "NOTICE" and whoSent(line) == NICKSERVER:
 	    irc.send("PRIVMSG NICKSERV IDENTIFY :" + PASSWORD + "\r\n")
 	    irc.send("JOIN " + CHANNEL + "\r\n")
 	    registered = True
 	    print "We are (hopefully) registered!"
 
-        if(line[0]=="PING"):
+        if line[0]=="PING":
 	    irc.send("PONG %s\r\n" % line[1])
