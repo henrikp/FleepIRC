@@ -3,5 +3,4 @@ FleepIRC
 
 IRC and Fleep (https://fleep.io/) integration
 
-I am planning to write a Fleep<>IRC gateway once the API is stable enough.
-So this will have to do for now, seems stable enough.
+The current version (fleep.py) is using URL hooks (IRC to Fleep), but I'm planning to write/finish the gateway (mirrored channels) once the API is stable enough.
