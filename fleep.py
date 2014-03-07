@@ -1,5 +1,5 @@
 #!/usr/bin/python
-
+"""
 The MIT License (MIT)
 
 Copyright (c) 2014 Henrik Pihl
@@ -21,6 +21,8 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+"""
+
 
 # IRC bot original code snatched from http://oreilly.com/pub/h/1968
 
@@ -108,7 +110,7 @@ while 1:
 	    #debug(time, who, msg)
 	    try:
 		r = requests.post(hook_url + "/" + who, data = {'message': clean_low_bytes(fleep)}, timeout = 1)
-	    except RequestException:
+	    except Exception:
 		sys.exc_clear()
 	    print "Status: " + str(r.status_code) + " " + str(time) + ":" + seconds
 
